@@ -104,3 +104,97 @@ Aggregate all PR context into a structured format for skill evaluation:
 **If PR is too large (>1000 files):**
 - Sample first 100 files for skill matching
 - Log warning: "Large PR detected, sampling files for skill evaluation"
+
+## Phase 2: Skill Discovery
+
+**Objective:** Find all available skills in installed plugins.
+
+### Step 2.1: Discover Plugin Skills
+
+Use `Glob` tool to find all SKILL.md files:
+
+```bash
+# Pattern to find all plugin skills
+.claude/plugins/*/skills/*/SKILL.md
+```
+
+**Expected paths:**
+- `.claude/plugins/rust-toolkit/skills/rust-async-design/SKILL.md`
+- `.claude/plugins/rust-toolkit/skills/rust-error-handling/SKILL.md`
+- `.claude/plugins/python-toolkit/skills/python-type-checker/SKILL.md`
+- etc.
+
+### Step 2.2: Extract Skill Metadata
+
+For each SKILL.md file found:
+
+1. **Read the file** using the `Read` tool
+2. **Parse frontmatter** to extract:
+   - `name`: Skill identifier
+   - `description`: When/why to use this skill
+3. **Extract overview section** (first section after frontmatter)
+
+**Example extraction:**
+
+```yaml
+---
+name: rust-async-design
+description: Use when reviewing async Rust code for deadlocks, race conditions, sync locks in async contexts
+---
+
+# Rust Async Design Review
+
+## Overview
+Reviews async Rust code for common concurrency issues...
+```
+
+**Extracted data:**
+
+```json
+{
+  "path": ".claude/plugins/rust-toolkit/skills/rust-async-design/SKILL.md",
+  "name": "rust-async-design",
+  "description": "Use when reviewing async Rust code for deadlocks, race conditions, sync locks in async contexts",
+  "overview": "Reviews async Rust code for common concurrency issues..."
+}
+```
+
+### Step 2.3: Build Skill Registry
+
+Aggregate all discovered skills:
+
+```json
+{
+  "discovered_skills": [
+    {
+      "name": "rust-async-design",
+      "description": "Use when reviewing async Rust code...",
+      "overview": "Reviews async Rust code...",
+      "path": ".claude/plugins/rust-toolkit/skills/rust-async-design/SKILL.md"
+    },
+    {
+      "name": "rust-error-handling",
+      "description": "Use when reviewing error handling...",
+      "overview": "Reviews error handling patterns...",
+      "path": ".claude/plugins/rust-toolkit/skills/rust-error-handling/SKILL.md"
+    }
+  ],
+  "total_discovered": 2
+}
+```
+
+### Error Handling
+
+**If no plugins found:**
+- Check if `.claude/plugins/` directory exists
+- Log warning: "No plugins found in .claude/plugins/"
+- Exit with message: "Install plugins via Claude marketplace before running skill dispatcher"
+
+**If SKILL.md has invalid frontmatter:**
+- Log warning: "Could not parse skill at [path]: [error]"
+- Continue with remaining skills
+- Include in final summary: "Warning: Skipped N skills due to parsing errors"
+
+**If SKILL.md file is empty:**
+- Log warning: "Empty skill file at [path]"
+- Skip and continue with remaining skills
