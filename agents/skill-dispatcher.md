@@ -567,3 +567,115 @@ Agent returns final status:
   ---
   _Review powered by skill-dispatcher agent_
   ```
+
+## Complete Examples
+
+### Example 1: Rust PR with Async Issues
+
+**PR Context:**
+- Files: `src/handlers.rs`, `src/api.rs`
+- Languages: Rust (`.rs`)
+- Diff shows: `async fn`, `.await`, `Mutex::new()`
+
+**Execution Flow:**
+
+1. **Phase 1: Context Gathering**
+   ```bash
+   gh pr view 123 --json files,title
+   # Returns: {"files": [{"path": "src/handlers.rs"}, ...], "title": "Add async handlers"}
+
+   gh pr diff 123
+   # Returns: diff showing async code and sync mutex
+   ```
+
+2. **Phase 2: Discovery**
+   ```
+   Found skills:
+   - rust-async-design
+   - rust-error-handling
+   - python-type-checker
+   ```
+
+3. **Phase 3: Evaluation**
+   ```
+   Applicable:
+   - rust-async-design (APPLIES: async code in diff)
+   - rust-error-handling (APPLIES: Result types visible)
+
+   Not applicable:
+   - python-type-checker (no .py files)
+   ```
+
+4. **Phase 4: Execution**
+   ```
+   Spawning subagent for rust-async-design...
+   → Posted 2 inline comments (sync mutex, no timeout)
+
+   Spawning subagent for rust-error-handling...
+   → Posted 1 inline comment (String error type)
+   ```
+
+5. **Phase 5: Summary**
+   ```markdown
+   ## PR Review Summary
+
+   **Skills Applied:**
+   - ✓ rust-async-design (2 issues found)
+   - ✓ rust-error-handling (1 issue found)
+
+   **Total:** 3 inline comments posted
+   ```
+
+### Example 2: Documentation-Only PR
+
+**PR Context:**
+- Files: `README.md`, `docs/guide.md`
+- Languages: None (markdown only)
+
+**Execution Flow:**
+
+1. **Phase 1-2:** Context gathered, skills discovered
+2. **Phase 3: Evaluation**
+   ```
+   No skills apply (no code changes)
+   ```
+3. **Phase 5: Summary**
+   ```markdown
+   ## PR Review Summary
+
+   No specialized skills apply to this PR.
+   This appears to be a documentation-only change.
+   ```
+
+### Example 3: Multi-Language PR
+
+**PR Context:**
+- Files: `src/main.rs`, `scripts/deploy.py`, `tests/test_api.py`
+- Languages: Rust (`.rs`), Python (`.py`)
+
+**Execution Flow:**
+
+1. **Phase 3: Evaluation**
+   ```
+   Applicable:
+   - rust-async-design (Rust files)
+   - rust-error-handling (Rust files)
+   - python-type-checker (Python files)
+   ```
+
+2. **Phase 4: Execution**
+   ```
+   Executes 3 subagents in priority order
+   ```
+
+3. **Phase 5: Summary**
+   ```markdown
+   ## PR Review Summary
+
+   **Skills Applied:**
+   - ✓ rust-async-design (1 issue found)
+   - ✓ rust-error-handling (0 issues found)
+   - ✓ python-type-checker (2 issues found)
+
+   **Total:** 3 inline comments posted
+   ```
