@@ -322,3 +322,132 @@ Sort applicable skills by priority to ensure critical reviews run first.
 - Log warning: "Many skills applicable, limiting to top 10 by priority"
 - Take top 10 highest priority skills
 - Note in summary: "Reviewed with top 10 applicable skills"
+
+## Phase 4: Subagent Orchestration
+
+**Objective:** Spawn fresh subagents to execute each applicable skill in isolation.
+
+### Step 4.1: Prepare Subagent Instructions
+
+For each applicable skill, construct subagent prompt:
+
+```markdown
+You are executing the {skill_name} skill for a GitHub PR review.
+
+**PR Context:**
+- Repository: {repository}
+- PR Number: {pr_number}
+- Files changed: {files_changed}
+- Languages: {languages}
+
+**Your Task:**
+1. Read and follow the {skill_name} skill at {skill_path}
+2. Analyze the PR diff for issues covered by this skill
+3. Use the mcp__github_inline_comment__create_inline_comment tool to post findings
+4. Post inline comments at specific file:line locations where issues are found
+5. Return a summary of findings to the dispatcher
+
+**Tools Available:**
+- Read (for reading skill file and PR files)
+- Bash (for gh CLI commands)
+- mcp__github_inline_comment__create_inline_comment (for posting comments)
+
+**PR Diff:**
+{full_diff}
+
+**Instructions:**
+Execute the skill checklist/patterns systematically.
+Post inline comments for each issue found.
+Provide clear, actionable feedback with suggestions.
+
+**Return Format:**
+Return a JSON summary:
+\`\`\`json
+{
+  "skill": "{skill_name}",
+  "status": "completed" | "failed",
+  "findings_count": <number>,
+  "inline_comments_posted": <number>,
+  "error": "<error message if failed>"
+}
+\`\`\`
+```
+
+### Step 4.2: Spawn Subagents
+
+For each applicable skill (in priority order):
+
+```python
+# Pseudo-code for orchestration
+for skill in applicable_skills:
+    # Spawn subagent using Task tool
+    result = spawn_subagent(
+        subagent_type="general-purpose",
+        prompt=construct_subagent_prompt(skill),
+        description=f"Execute {skill.name} on PR #{pr_number}"
+    )
+
+    # Collect result
+    skill_results.append(result)
+```
+
+**Execution model:**
+- **Sequential** by default (one skill at a time, easier to track progress)
+- **Parallel** option for future enhancement (spawn all at once)
+
+### Step 4.3: Monitor Subagent Execution
+
+Track progress of each subagent:
+
+```json
+{
+  "subagent_status": [
+    {
+      "skill": "rust-async-design",
+      "status": "running",
+      "started_at": "2025-11-22T10:30:00Z"
+    },
+    {
+      "skill": "rust-error-handling",
+      "status": "pending",
+      "queued_at": "2025-11-22T10:30:05Z"
+    }
+  ]
+}
+```
+
+If `track_progress: true` is enabled in the workflow, update progress comment on PR.
+
+### Step 4.4: Collect Results
+
+After each subagent completes:
+
+```json
+{
+  "skill": "rust-async-design",
+  "status": "completed",
+  "findings_count": 3,
+  "inline_comments_posted": 3,
+  "duration_seconds": 45
+}
+```
+
+Aggregate all results for final summary.
+
+### Error Handling
+
+**If subagent fails:**
+- Capture error message
+- Log: "Subagent for {skill} failed: {error}"
+- Mark skill as failed in results
+- Continue with remaining skills (isolation prevents cascade failures)
+
+**If subagent times out (>5 minutes):**
+- Log: "Subagent for {skill} timed out"
+- Mark as failed with timeout error
+- Continue with remaining skills
+
+**If MCP tool unavailable:**
+- Log: "MCP inline comment tool not available"
+- Fallback: Post findings as regular PR comment
+- Note in summary: "Posted findings as comment (inline comments unavailable)"
