@@ -1,0 +1,17 @@
+{
+  "name": "fsj-claude-tools",
+  "version": "1.0.0",
+  "description": "Bundled plugins for Claude Code including Rust development tools",
+  "owner": {
+    "name": "Francois Saint-Jacques",
+    "email": "fsaintjacques@gmail.com"
+  },
+  "plugins": [
+    {
+      "name": "rust-toolkit",
+      "description": "Tools for Rust development",
+      "source": "./plugins/rust-toolkit",
+      "category": "development"
+    }
+  ]
+}

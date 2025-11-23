@@ -1,0 +1,9 @@
+{
+  "name": "rust-toolkit",
+  "description": "fsj's Claude rust toolkit",
+  "version": "1.0.0",
+  "author": {
+    "name": "Francois Saint-Jacques",
+    "email": "fsaintjacques@gmail.com"
+  }
+}
