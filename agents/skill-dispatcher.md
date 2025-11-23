@@ -451,3 +451,119 @@ Aggregate all results for final summary.
 - Log: "MCP inline comment tool not available"
 - Fallback: Post findings as regular PR comment
 - Note in summary: "Posted findings as comment (inline comments unavailable)"
+
+## Phase 5: Result Aggregation
+
+**Objective:** Collect subagent results and post summary comment to PR.
+
+### Step 5.1: Aggregate Subagent Results
+
+Combine results from all subagents:
+
+```json
+{
+  "total_skills_executed": 2,
+  "successful_skills": 2,
+  "failed_skills": 0,
+  "total_findings": 4,
+  "results": [
+    {
+      "skill": "rust-async-design",
+      "status": "completed",
+      "findings": 3,
+      "duration": 45
+    },
+    {
+      "skill": "rust-error-handling",
+      "status": "completed",
+      "findings": 1,
+      "duration": 30
+    }
+  ]
+}
+```
+
+### Step 5.2: Format Summary Comment
+
+Construct markdown summary:
+
+```markdown
+## PR Review Summary
+
+**Skills Applied:**
+- ✓ rust-async-design (3 issues found)
+- ✓ rust-error-handling (1 issue found)
+
+**Total:** 4 inline comments posted
+
+**Review Details:**
+This PR was automatically reviewed using specialized skills from installed plugins. Each inline comment indicates which skill identified the issue.
+
+---
+_Review powered by skill-dispatcher agent_
+```
+
+### Step 5.3: Post Summary Comment
+
+Use `gh` CLI to post summary:
+
+```bash
+gh pr comment <PR_NUMBER> --body "<summary_markdown>"
+```
+
+### Step 5.4: Handle Failures
+
+If any skills failed, include in summary:
+
+```markdown
+## PR Review Summary
+
+**Skills Applied:**
+- ✓ rust-async-design (3 issues found)
+- ✗ rust-error-handling (failed: timeout after 5 minutes)
+
+**Total:** 3 inline comments posted
+
+**Warnings:**
+- rust-error-handling skill timed out. Consider manual review for error handling patterns.
+
+---
+_Review powered by skill-dispatcher agent_
+```
+
+### Step 5.5: Return Completion Status
+
+Agent returns final status:
+
+```json
+{
+  "status": "completed",
+  "skills_executed": 2,
+  "skills_failed": 0,
+  "total_findings": 4,
+  "summary_posted": true
+}
+```
+
+### Error Handling
+
+**If summary comment post fails:**
+- Log error: "Failed to post summary comment: {error}"
+- Check GitHub CLI authentication
+- Retry once with exponential backoff
+- If still fails, log final error but don't fail the entire review
+
+**If no findings from any skill:**
+- Post positive summary:
+  ```markdown
+  ## PR Review Summary
+
+  **Skills Applied:**
+  - ✓ rust-async-design (no issues found)
+  - ✓ rust-error-handling (no issues found)
+
+  **Result:** No issues detected by automated skill reviews.
+
+  ---
+  _Review powered by skill-dispatcher agent_
+  ```
