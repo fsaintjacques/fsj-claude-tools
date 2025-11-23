@@ -1,0 +1,9 @@
+{
+  "name": "pr-review-dispatcher",
+  "description": "fsj's PR review dispatcher plugin",
+  "version": "1.0.0",
+  "author": {
+    "name": "Francois Saint-Jacques",
+    "email": "fsaintjacques@gmail.com"
+  }
+}

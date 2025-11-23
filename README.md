@@ -33,10 +33,10 @@ Automatically discovers and routes PR reviews to applicable plugin skills:
 
 In Claude Code:
 ```
-/plugins
+/plugin marketplace add fsaintjacques/fsj-claude-tools
+/plugin install rust-tools@fsj-claude-tools
 ```
 
-Search for "fsj-claude-tools" and install.
 
 ### 2. Configure GitHub Workflow
 
@@ -122,33 +122,6 @@ Skills are self-configuring - no manifest needed. To add new skills:
 1. Create skill in `.claude/plugins/your-plugin/skills/skill-name/SKILL.md`
 2. Add frontmatter with `name` and `description`
 3. Skill dispatcher will automatically discover and use it
-
-## Development
-
-### Design Document
-
-See `docs/plans/2025-11-22-github-action-integration.md` for:
-- Architecture details
-- Data flow
-- Error handling
-- Future enhancements
-
-### Testing
-
-Manual testing workflow:
-1. Create test repository with sample code
-2. Install fsj-claude-tools plugin
-3. Configure workflow
-4. Create PR with known issues
-5. Verify inline comments appear correctly
-
-## Contributing
-
-Contributions welcome! Areas for improvement:
-- Additional language toolkits (Python, JavaScript, etc.)
-- Performance optimizations
-- Parallel subagent execution
-- Custom skill priority configuration
 
 ## License
 

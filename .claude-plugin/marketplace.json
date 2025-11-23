@@ -1,38 +1,21 @@
 {
   "name": "fsj-claude-tools",
-  "displayName": "FSJ Claude Tools",
   "description": "GitHub Action skill dispatcher and Rust code review toolkit with 10+ specialized review skills",
   "version": "1.0.0",
-  "author": {
+  "owner": {
     "name": "Francois Saint-Jacques",
     "email": "fsaintjacques@gmail.com"
   },
-  "homepage": "https://github.com/fsaintjacques/fsj-claude-tools",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/fsaintjacques/fsj-claude-tools.git"
-  },
-  "keywords": [
-    "code-review",
-    "rust",
-    "github-actions",
-    "pr-review",
-    "async",
-    "error-handling",
-    "type-system"
-  ],
-  "agents": [
+  "plugins": [
     {
       "name": "skill-dispatcher",
       "description": "Meta-dispatcher agent for automated PR reviews using plugin skills",
-      "path": "agents/skill-dispatcher.md"
-    }
-  ],
-  "plugins": [
+      "source": "./plugins/pr-review-dispatcher"
+    },
     {
       "name": "rust-toolkit",
       "description": "Comprehensive Rust code review skills",
-      "path": "plugins/rust-toolkit"
+      "source": "./plugins/rust-toolkit"
     }
   ]
 }
