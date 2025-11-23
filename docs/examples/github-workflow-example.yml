@@ -1,0 +1,76 @@
+# Example GitHub Action workflow for skill-based PR reviews
+# Copy this file to .github/workflows/claude-skill-review.yml in your repository
+
+name: Claude Skill-Based PR Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review, reopened]
+
+jobs:
+  skill-review:
+    runs-on: ubuntu-latest
+
+    # Required permissions for PR interaction
+    permissions:
+      contents: read           # Read repository files
+      pull-requests: write     # Post comments and reviews
+      id-token: write         # OIDC authentication
+
+    steps:
+      # Checkout the PR branch
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Run Claude skill-based review
+      - name: Run skill dispatcher
+        uses: anthropics/claude-code-action@v1
+        with:
+          # Required: Anthropic API key from repository secrets
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+
+          # Optional: Enable progress tracking with checkboxes
+          track_progress: true
+
+          # Main prompt: Invoke skill-dispatcher agent
+          prompt: |
+            Use the skill-dispatcher agent to review this PR.
+
+            PR Number: ${{ github.event.pull_request.number }}
+            Repository: ${{ github.repository }}
+
+          # Tool permissions
+          claude_args: |
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr *),Read,Glob,Grep,Task,Skill"
+
+# Installation Instructions:
+#
+# 1. Install fsj-claude-tools plugin from Claude marketplace
+#    - Includes skill-dispatcher agent and rust-toolkit plugin
+#
+# 2. Add ANTHROPIC_API_KEY to repository secrets:
+#    - Go to repository Settings → Secrets and variables → Actions
+#    - Click "New repository secret"
+#    - Name: ANTHROPIC_API_KEY
+#    - Value: your API key from https://console.anthropic.com
+#
+# 3. Copy this file to .github/workflows/claude-skill-review.yml
+#
+# 4. Commit and push the workflow file
+#
+# 5. Create a PR to trigger the review
+#
+# Customization Options:
+#
+# - Trigger events: Modify the 'on:' section to change when reviews run
+#   Example: Only run on PRs to main branch:
+#   on:
+#     pull_request:
+#       types: [opened, synchronize]
+#       branches: [main]
+#
+# - Skip draft PRs: Remove 'ready_for_review' from types, add:
+#   if: github.event.pull_request.draft == false
+#
+# - Timeout: Add timeout-minutes to the job:
+#   timeout-minutes: 10
