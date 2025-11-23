@@ -8,7 +8,7 @@
   },
   "plugins": [
     {
-      "name": "skill-dispatcher",
+      "name": "pr-review-dispatcher",
       "description": "Meta-dispatcher agent for automated PR reviews using plugin skills",
       "source": "./plugins/pr-review-dispatcher"
     },
