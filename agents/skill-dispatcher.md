@@ -198,3 +198,127 @@ Aggregate all discovered skills:
 **If SKILL.md file is empty:**
 - Log warning: "Empty skill file at [path]"
 - Skip and continue with remaining skills
+
+## Phase 3: Applicability Evaluation
+
+**Objective:** Use LLM reasoning to determine which skills apply to the PR.
+
+### Step 3.1: Prepare Evaluation Prompt
+
+For each discovered skill, construct an evaluation prompt:
+
+```
+PR Context:
+- Repository: {repository}
+- PR Number: {pr_number}
+- Files changed: {files_changed}
+- Languages detected: {languages}
+- Title: {title}
+- Additions/Deletions: {additions}/{deletions}
+
+Diff excerpt (first 50 lines):
+{diff_excerpt}
+
+Available Skill:
+- Name: {skill_name}
+- Description: {skill_description}
+- Overview: {skill_overview}
+
+Question: Based on the PR context above, does this skill apply to this PR?
+
+Consider:
+1. Do the changed files match the skill's domain? (e.g., .rs files for Rust skills)
+2. Does the diff show patterns the skill is designed to review? (e.g., async code, error handling)
+3. Does the PR title/description suggest this skill is relevant?
+
+Answer with:
+- "APPLIES" if the skill is clearly relevant (high confidence)
+- "MAYBE" if the skill might be relevant (medium confidence)
+- "DOES_NOT_APPLY" if the skill is clearly not relevant (low confidence)
+
+Provide brief reasoning for your decision.
+```
+
+### Step 3.2: Evaluate Each Skill
+
+For each skill in the registry:
+1. Run the evaluation prompt using LLM
+2. Parse the response to extract decision and reasoning
+3. Record the result
+
+**Example evaluation:**
+
+```json
+{
+  "skill": "rust-async-design",
+  "decision": "APPLIES",
+  "confidence": "high",
+  "reasoning": "PR changes .rs files with async functions and .await calls visible in diff"
+}
+```
+
+### Step 3.3: Build Applicable Skills List
+
+Filter skills based on evaluation:
+
+**Include if:**
+- Decision is "APPLIES" (high confidence)
+- Decision is "MAYBE" AND PR is small (<100 files) - better to over-review than miss issues
+
+**Exclude if:**
+- Decision is "DOES_NOT_APPLY"
+- Decision is "MAYBE" AND PR is large (>100 files) - avoid unnecessary reviews on large PRs
+
+**Result:**
+
+```json
+{
+  "applicable_skills": [
+    {
+      "name": "rust-async-design",
+      "confidence": "high",
+      "reasoning": "PR changes .rs files with async code"
+    },
+    {
+      "name": "rust-error-handling",
+      "confidence": "high",
+      "reasoning": "PR shows Result types and error propagation in diff"
+    }
+  ],
+  "skipped_skills": [
+    {
+      "name": "python-type-checker",
+      "reasoning": "No Python files in PR"
+    }
+  ],
+  "total_applicable": 2
+}
+```
+
+### Step 3.4: Prioritize Skills
+
+Order applicable skills by priority:
+
+**Priority levels:**
+1. **Critical** - Correctness/safety issues (async-design, systems-review, error-handling)
+2. **Important** - Architecture/design (architectural-composition, design-review)
+3. **Nice-to-have** - Style/completeness (trait-detection, type-system)
+
+Sort applicable skills by priority to ensure critical reviews run first.
+
+### Error Handling
+
+**If LLM evaluation fails:**
+- Log error: "Failed to evaluate skill [name]: [error]"
+- Default to "MAYBE" for that skill
+- Continue with remaining skills
+
+**If no skills apply:**
+- Log: "No applicable skills found for this PR"
+- Post comment: "No specialized skills apply to this PR. Consider requesting manual review."
+- Exit gracefully (not an error)
+
+**If >10 skills apply:**
+- Log warning: "Many skills applicable, limiting to top 10 by priority"
+- Take top 10 highest priority skills
+- Note in summary: "Reviewed with top 10 applicable skills"
